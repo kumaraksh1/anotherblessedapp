@@ -39,31 +39,20 @@ jobs:
           name: dotnet-app
           path: ./HelloRouterApp/out
     
-    build-and-push-docker:
-      name: Build and Push Python Docker Image
-      runs-on: ubuntu-latest
-      
-      defaults:
-        run:
-          working-directory: ./hello-app
+      - name: Log in to container registry
+        uses: docker/login-action@v2
+        with:
+          registry: sitecontainerssampleacr.azurecr.io/
+          username: ${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_A0CC9BC301454048B276D44640F4817D }}
+          password: ${{ secrets.AZUREAPPSERVICE_CONTAINERPASSWORD_D5DF9FCBBA0B44269C84675BD466AD75 }}
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-
-        - name: Log in to container registry
-          uses: docker/login-action@v2
-          with:
-            registry: sitecontainerssampleacr.azurecr.io/
-            username: ${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_A0CC9BC301454048B276D44640F4817D }}
-            password: ${{ secrets.AZUREAPPSERVICE_CONTAINERPASSWORD_D5DF9FCBBA0B44269C84675BD466AD75 }}
-
-        - name: Build and push container hello-app image to registry
-          uses: docker/build-push-action@v3
-          with:
-            push: true
-            tags: sitecontainerssampleacr.azurecr.io/sitecontainerssampleacr/test/hello-app:${{ github.sha }}
-            file: ./Dockerfile
+      - name: Build and push container hello-app image to registry
+        uses: docker/build-push-action@v3
+        with:
+          context: ./hello-app
+          push: true
+          tags: sitecontainerssampleacr.azurecr.io/sitecontainerssampleacr/test/hello-app:${{ github.sha }}
+          file: ./hello-app/Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
