@@ -38,6 +38,32 @@ jobs:
         with:
           name: dotnet-app
           path: ./HelloRouterApp/out
+    
+    build-and-push-docker:
+      name: Build and Push Python Docker Image
+      runs-on: ubuntu-latest
+      
+      defaults:
+        run:
+          working-directory: ./hello-app
+
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Log in to container registry
+          uses: docker/login-action@v2
+          with:
+            registry: sitecontainerssampleacr.azurecr.io/
+            username: ${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_A0CC9BC301454048B276D44640F4817D }}
+            password: ${{ secrets.AZUREAPPSERVICE_CONTAINERPASSWORD_D5DF9FCBBA0B44269C84675BD466AD75 }}
+
+        - name: Build and push container hello-app image to registry
+          uses: docker/build-push-action@v3
+          with:
+            push: true
+            tags: sitecontainerssampleacr.azurecr.io/sitecontainerssampleacr/test/hello-app:${{ github.sha }}
+            file: ./Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
@@ -61,9 +87,19 @@ jobs:
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@releases/v3-final-release-sidecar
         with:
           app-name: 'blessedsidecarlast'
           slot-name: 'Production'
           package: .
+          sitecontainers-config: >-
+          [
+            {
+              "name": "hello-app",
+              "image": "sitecontainerssampleacr.azurecr.io/sitecontainerssampleacr/test/hello-app:${{ github.sha }}",
+              "targetPort": 5001,
+              "isMain": false,
+              "volumeMounts": [{"containerMountPath": "abc", "data" : "def", "readOnly" : true, "volumeSubPath": "xyz"}]
+            }
+          ]
           
